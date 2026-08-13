@@ -1,7 +1,7 @@
 Yang ada saat ini
-- Akun dengan role berbeda
+- Akun dengan role Karyawan, Manager, Finance, dan admin
 - sumbit form
-- Approve
+- Approve dan Reject (Msh hanya finance)
 
 
 Task yang perlu namun belum
@@ -11,6 +11,7 @@ Task yang perlu namun belum
 - Membuat agar bisa menjadi excel di sisi admin atau finance
 - Memastikan alurnya sudah sesuai dan berjalan sebagai seharusnya
 - Improve UI dan UX
+- Membuat agar admin bisa mendownload versi exelnya
 
 Questions
 - Apa guna manager sebenarnya? Apakah manager perlu melakukan approve secara manual?
