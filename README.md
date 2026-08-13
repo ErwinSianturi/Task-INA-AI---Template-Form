@@ -1,3 +1,5 @@
+Framework : Laravel
+
 Yang ada saat ini
 - Akun dengan role Karyawan, Manager, Finance, dan admin
 - sumbit form
