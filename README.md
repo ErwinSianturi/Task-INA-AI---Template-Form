@@ -14,6 +14,7 @@ Task yang perlu namun belum
 
 Questions
 - Apa guna manager sebenarnya? Apakah manager perlu melakukan approve secara manual?
+- Apakah perlu di buat jadi ttd digital untu acc nya?
 
 
 
