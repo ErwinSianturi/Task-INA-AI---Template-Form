@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -23,6 +22,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'signature_path',
     ];
 
     /**
@@ -61,5 +61,10 @@ class User extends Authenticatable
     public function isRole($role)
     {
         return $this->role === $role;
+    }
+
+    public function isPengawas()
+    {
+        return $this->role === 'pengawas';
     }
 }

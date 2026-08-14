@@ -10,24 +10,26 @@
     </div>
     
     <div class="btn-group">
-        <!-- Employee Submit Action -->
-        @if($travelRequest->status === 'draft' && Auth::id() === $travelRequest->user_id)
+        <!-- Employee Submit / Resubmit Action -->
+        @if(in_array($travelRequest->status, ['draft', 'rejected']) && Auth::id() === $travelRequest->user_id)
             <form action="{{ route('travel-requests.submit', $travelRequest) }}" method="POST">
                 @csrf
-                <button type="submit" class="btn btn-success">Submit for Approval</button>
+                <button type="submit" class="btn btn-success">
+                    {{ $travelRequest->status === 'rejected' ? 'Resubmit for Approval' : 'Submit for Approval' }}
+                </button>
             </form>
         @endif
 
-        <!-- Manager / Admin Approval Actions -->
-        @if($travelRequest->status === 'pending_manager' && (Auth::user()->isRole('manager') || Auth::user()->isRole('admin')))
+        <!-- Category / Manager / Pantro Approver Actions -->
+        @if($travelRequest->status === 'pending_manager' && ($canApprove ?? false))
             <form action="{{ route('travel-requests.approve', $travelRequest) }}" method="POST" style="display: inline;">
                 @csrf
-                <button type="submit" class="btn btn-success">Approve TRF</button>
+                <button type="submit" class="btn btn-success">
+                    ✓ Approve TRF as {{ Auth::user()->name }}
+                </button>
             </form>
-            <form action="{{ route('travel-requests.reject', $travelRequest) }}" method="POST" style="display: inline;">
-                @csrf
-                <button type="submit" class="btn btn-danger">Reject TRF</button>
-            </form>
+            
+            <button type="button" class="btn btn-danger" onclick="document.getElementById('rejectModal').style.display='flex'">Reject TRF</button>
         @endif
 
         <!-- Employee Link to Create CRF (if approved and no CRF exists yet) -->
@@ -38,6 +40,59 @@
         @endif
     </div>
 </div>
+
+<!-- Multi-Role Approval Requirement Tracker Banner for Pending Status -->
+@if($travelRequest->status === 'pending_manager')
+    <div class="alert alert-success" style="max-width: 850px; margin: 0 auto 1.5rem auto; background-color: #EFF6FF; color: #1E40AF; border-color: #BFDBFE;">
+        <div style="width: 100%;">
+            <div style="font-weight: 700; font-size: 1rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+                <span>📋 Status Approval 3 Pihak (TRF - Category: {{ $travelRequest->category }})</span>
+                <span style="font-size: 0.8rem; background: #DBEAFE; color: #1E40AF; padding: 0.2rem 0.6rem; border-radius: 4px;">Perlu Persetujuan Penuh</span>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.5rem; font-size: 0.85rem; margin-top: 0.5rem; background: white; padding: 0.75rem; border-radius: 6px; border: 1px solid #BFDBFE;">
+                <!-- 1. Category Approver -->
+                <div>
+                    <span style="color: #64748B;">Category ({{ $travelRequest->category === 'Technology' ? 'Billy' : ($travelRequest->category === 'Commercial' ? 'Apriliansyah' : 'Billy/April') }}):</span><br>
+                    @if($travelRequest->category_approved_at)
+                        <strong style="color: #059669;">✓ Approved ({{ $travelRequest->categoryApprover->name ?? 'Approver' }})</strong>
+                    @else
+                        <strong style="color: #D97706;">⏳ Pending Approval</strong>
+                    @endif
+                </div>
+
+                <!-- 2. Manager -->
+                <div>
+                    <span style="color: #64748B;">Manager:</span><br>
+                    @if($travelRequest->manager_approved_at)
+                        <strong style="color: #059669;">✓ Approved ({{ $travelRequest->manager->name ?? 'Manager' }})</strong>
+                    @else
+                        <strong style="color: #D97706;">⏳ Pending Approval</strong>
+                    @endif
+                </div>
+
+                <!-- 3. Pantro Pander -->
+                <div>
+                    <span style="color: #64748B;">Pantro Pander:</span><br>
+                    @if($travelRequest->pantro_approved_at)
+                        <strong style="color: #059669;">✓ Approved ({{ $travelRequest->pantroUser->name ?? 'Pantro Pander' }})</strong>
+                    @else
+                        <strong style="color: #D97706;">⏳ Pending Approval</strong>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+@endif
+
+@if($travelRequest->status === 'rejected')
+    <div class="alert alert-danger" style="max-width: 850px; margin: 0 auto 1.5rem auto; border-left: 4px solid var(--danger);">
+        <div>
+            <strong>🚫 Travel Request Rejected</strong>
+            <p style="margin-top: 0.25rem;">Alasan Penolakan: <em>{{ $travelRequest->manager_comment ?? 'Tidak ada catatan.' }}</em></p>
+        </div>
+    </div>
+@endif
 
 <div class="paper-container">
     <div class="paper-sheet">
@@ -104,8 +159,7 @@
                         <td>{{ $dest->to }}</td>
                     </tr>
                 @endforeach
-                <!-- Print padding rows if destinations are few to mimic paper sheet layout -->
-                @for($i = count($travelRequest->destinations); $i < 8; $i++)
+                @for($i = count($travelRequest->destinations); $i < 6; $i++)
                     <tr class="dashed-row">
                         <td>&nbsp;</td>
                         <td>&nbsp;</td>
@@ -118,21 +172,20 @@
         <!-- Justification -->
         <div class="paper-textarea-section">
             <label class="paper-textarea-label">Justification</label>
-            <div class="paper-textarea-box" style="min-height: 90px; white-space: pre-wrap;">{{ $travelRequest->justification }}</div>
+            <div class="paper-textarea-box" style="min-height: 80px; white-space: pre-wrap;">{{ $travelRequest->justification }}</div>
         </div>
 
         <!-- Benefit -->
         <div class="paper-textarea-section">
             <label class="paper-textarea-label">Benefit</label>
-            <div class="paper-textarea-box" style="min-height: 90px; white-space: pre-wrap;">{{ $travelRequest->benefit }}</div>
+            <div class="paper-textarea-box" style="min-height: 80px; white-space: pre-wrap;">{{ $travelRequest->benefit }}</div>
         </div>
 
-        <!-- Supporting Data Checkbox List (2 kolom: kiri 1&2, kanan 3&4) -->
+        <!-- Supporting Data Checkbox List -->
         <div class="supporting-section">
             <div class="supporting-title">Supporting Datas <em>(check if applicable)</em>:</div>
             
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 2rem;">
-                <!-- Baris 1 Kiri -->
                 <div class="supporting-row">
                     <div style="flex: 1; border-bottom: 1px dotted #000000; font-family: var(--font-main); font-size: 0.95rem; padding-bottom: 2px;">
                         {{ $travelRequest->supporting_label_1 ?? 'Invitation' }}
@@ -142,7 +195,6 @@
                     </div>
                 </div>
 
-                <!-- Baris 1 Kanan -->
                 <div class="supporting-row">
                     <div style="flex: 1; border-bottom: 1px dotted #000000; font-family: var(--font-main); font-size: 0.95rem; padding-bottom: 2px;">
                         {{ $travelRequest->supporting_label_3 ?? '' }}
@@ -152,7 +204,6 @@
                     </div>
                 </div>
 
-                <!-- Baris 2 Kiri -->
                 <div class="supporting-row">
                     <div style="flex: 1; border-bottom: 1px dotted #000000; font-family: var(--font-main); font-size: 0.95rem; padding-bottom: 2px;">
                         {{ $travelRequest->supporting_label_2 ?? 'Travel Invitation Letter' }}
@@ -162,7 +213,6 @@
                     </div>
                 </div>
 
-                <!-- Baris 2 Kanan -->
                 <div class="supporting-row">
                     <div style="flex: 1; border-bottom: 1px dotted #000000; font-family: var(--font-main); font-size: 0.95rem; padding-bottom: 2px;">
                         {{ $travelRequest->supporting_label_4 ?? '' }}
@@ -174,11 +224,11 @@
             </div>
         </div>
 
-        <!-- Signature block grid layout (2 columns) -->
-        <div class="signature-grid-2">
-            <!-- Column 1: Requested & Acknowledged -->
-            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-                <!-- Requested by -->
+        <!-- Signature Block Grid Layout (Exact 3 Columns x 2 Rows = 6 Boxes matching Gambar 2) -->
+        <div class="signature-grid-3">
+            <!-- Column 1 (Left Column): Requested by & Acknowledged by -->
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                <!-- Box 1: Requested by -->
                 <div class="signature-card">
                     <div class="signature-title">Requested by</div>
                     <div class="signature-body" style="font-family: var(--font-paper); font-weight: bold;">
@@ -192,71 +242,130 @@
                     </div>
                 </div>
 
-                <!-- Acknowledged by -->
+                <!-- Box 2: Acknowledged by (Manager) -->
                 <div class="signature-card">
                     <div class="signature-title">Acknowledged by</div>
-                    <div class="signature-body">
-                        @if($travelRequest->status === 'approved')
-                            Pantro Pander
-                        @else
-                            XXXX
-                        @endif
-                    </div>
-                    <div class="signature-name-field">
-                        @if($travelRequest->status === 'approved')
-                            Pantro Pander
-                        @else
-                            XXXX
-                        @endif
-                    </div>
-                    <div class="signature-date">
-                        Signed Date: @if($travelRequest->approved_at) {{ $travelRequest->approved_at->format('d-M-Y') }} @endif
-                    </div>
-                </div>
-            </div>
-
-            <!-- Column 2: Approved by -->
-            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-                <!-- Approved by (1) -->
-                <div class="signature-card">
-                    <div class="signature-title">Approved by</div>
-                    <div class="signature-body highlight" style="font-family: var(--font-paper); font-weight: bold; text-align: center; display: flex; flex-direction: column; justify-content: center;">
-                        @if($travelRequest->status === 'approved')
-                            <span style="font-size: 1.2rem; letter-spacing: 2px;">APPROVED</span>
-                            <span style="font-size: 0.8rem; font-weight: normal;">SYSTEM MANAGER</span>
-                        @endif
-                    </div>
-                    <div class="signature-name-field">
-                        @if($travelRequest->status === 'approved')
-                            Manager
+                    <div class="signature-body" style="font-family: var(--font-paper); text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                        @if($travelRequest->manager_approved_at)
+                            <div style="border: 2px dashed #059669; padding: 0.2rem 0.5rem; border-radius: 4px; background-color: #ECFDF5; color: #065F46;">
+                                <div style="font-size: 0.6rem; font-weight: bold;">APPROVED MANAGER</div>
+                                <div style="font-family: 'Courier Prime', monospace; font-size: 0.95rem; font-weight: bold; color: #1A2A3A;">
+                                    ✍️ {{ $travelRequest->manager->name ?? 'Manager' }}
+                                </div>
+                            </div>
                         @else
                             &nbsp;
                         @endif
                     </div>
+                    <div class="signature-name-field">
+                        {{ $travelRequest->manager->name ?? '' }}
+                    </div>
                     <div class="signature-date">
-                        Signed Date: @if($travelRequest->approved_at) {{ $travelRequest->approved_at->format('d-M-Y') }} @endif
+                        Signed Date: {{ $travelRequest->manager_approved_at ? $travelRequest->manager_approved_at->format('d-M-Y') : '' }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Column 2 (Middle Column): Approved by (Category Approver) & Checked by (FA Manager) -->
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                <!-- Box 3: Approved by (Billy Gunawan / Apriliansyah) -->
+                <div class="signature-card">
+                    <div class="signature-title">Approved by</div>
+                    <div class="signature-body" style="font-family: var(--font-paper); text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                        @if($travelRequest->category_approved_at)
+                            <div style="border: 2px dashed #059669; padding: 0.2rem 0.5rem; border-radius: 4px; background-color: #ECFDF5; color: #065F46;">
+                                <div style="font-size: 0.6rem; font-weight: bold; text-transform: uppercase;">CATEGORY APPROVED</div>
+                                <div style="font-family: 'Courier Prime', monospace; font-size: 0.95rem; font-weight: bold; color: #1A2A3A;">
+                                    ✍️ {{ $travelRequest->categoryApprover->name ?? 'Billy Gunawan' }}
+                                </div>
+                            </div>
+                        @else
+                            &nbsp;
+                        @endif
+                    </div>
+                    <div class="signature-name-field" style="font-weight: bold;">
+                        {{ $travelRequest->categoryApprover->name ?? ($travelRequest->category === 'Technology' ? 'Billy Gunawan' : ($travelRequest->category === 'Commercial' ? 'Apriliansyah' : 'Billy Gunawan OR Apriliansyah')) }}
+                    </div>
+                    <div class="signature-date">
+                        Signed Date: {{ $travelRequest->category_approved_at ? $travelRequest->category_approved_at->format('d-M-Y') : '' }}
                     </div>
                 </div>
 
-                <!-- Approved by (2) -->
+                <!-- Box 4: Checked by (FA Manager) -->
+                <div class="signature-card">
+                    <div class="signature-title">Checked by</div>
+                    <div class="signature-body">
+                        &nbsp;
+                    </div>
+                    <div class="signature-name-field">
+                        FA Manager
+                    </div>
+                    <div class="signature-date">
+                        Signed Date:
+                    </div>
+                </div>
+            </div>
+
+            <!-- Column 3 (Right Column): Approved by (Pantro Pander) & Checked by (Tung Sen) -->
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                <!-- Box 5: Approved by (Pantro Pander) -->
                 <div class="signature-card">
                     <div class="signature-title">Approved by</div>
-                    <div class="signature-body">
-                        @if($travelRequest->status === 'approved')
-                            Pantro Pander
+                    <div class="signature-body" style="font-family: var(--font-paper); text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                        @if($travelRequest->pantro_approved_at)
+                            <div style="border: 2px dashed #059669; padding: 0.2rem 0.5rem; border-radius: 4px; background-color: #ECFDF5; color: #065F46;">
+                                <div style="font-size: 0.6rem; font-weight: bold;">APPROVED PENGAWAS</div>
+                                <div style="font-family: 'Courier Prime', monospace; font-size: 0.95rem; font-weight: bold; color: #1A2A3A;">
+                                    ✍️ Pantro Pander
+                                </div>
+                            </div>
                         @else
-                            Pantro Pander
+                            &nbsp;
                         @endif
                     </div>
                     <div class="signature-name-field">
                         Pantro Pander
                     </div>
                     <div class="signature-date">
-                        Signed Date: @if($travelRequest->approved_at) {{ $travelRequest->approved_at->format('d-M-Y') }} @endif
+                        Signed Date: {{ $travelRequest->pantro_approved_at ? $travelRequest->pantro_approved_at->format('d-M-Y') : '' }}
+                    </div>
+                </div>
+
+                <!-- Box 6: Checked by (Tung Sen) -->
+                <div class="signature-card">
+                    <div class="signature-title">Checked by</div>
+                    <div class="signature-body">
+                        &nbsp;
+                    </div>
+                    <div class="signature-name-field">
+                        Tung Sen
+                    </div>
+                    <div class="signature-date">
+                        Signed Date:
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Category Approver Reject Modal -->
+@if($travelRequest->status === 'pending_manager' && ($canApprove ?? false))
+<div id="rejectModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+    <div style="background: white; border-radius: 8px; width: 100%; max-width: 450px; padding: 1.5rem; box-shadow: var(--shadow-lg);">
+        <h3 style="margin-bottom: 1rem; color: var(--danger);">Reject Travel Request</h3>
+        <form action="{{ route('travel-requests.reject', $travelRequest) }}" method="POST">
+            @csrf
+            <div style="margin-bottom: 1rem;">
+                <label style="display: block; font-weight: 600; margin-bottom: 0.4rem; font-size: 0.9rem;">Alasan Penolakan (Reject Reason) <span style="color:red">*</span>:</label>
+                <textarea name="comment" rows="4" required class="input-control" placeholder="Tuliskan alasan penolakan..."></textarea>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('rejectModal').style.display='none'">Batal</button>
+                <button type="submit" class="btn btn-danger">Ya, Reject TRF</button>
+            </div>
+        </form>
+    </div>
+</div>
+@endif
 @endsection

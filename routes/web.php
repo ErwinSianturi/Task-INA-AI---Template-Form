@@ -1,8 +1,10 @@
 <?php
 
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\TravelRequestController;
+use App\Http\Controllers\ExcelExportController;
 use App\Http\Controllers\ReimbursementController;
+use App\Http\Controllers\TravelRequestController;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 // Guest Routes
@@ -23,24 +25,29 @@ Route::middleware(['auth'])->group(function () {
         if ($user->isRole('employee')) {
             $travelRequests = \App\Models\TravelRequest::where('user_id', $user->id)->latest()->take(10)->get();
             $reimbursements = \App\Models\Reimbursement::where('user_id', $user->id)->latest()->take(10)->get();
-        } elseif ($user->isRole('manager')) {
-            // Managers focus on pending manager travel requests
-            $travelRequests = \App\Models\TravelRequest::latest()->get();
-            $reimbursements = \App\Models\Reimbursement::latest()->get();
-        } elseif ($user->isRole('finance')) {
-            // Finance focus on pending finance cash reimbursements
-            $travelRequests = \App\Models\TravelRequest::latest()->get();
-            $reimbursements = \App\Models\Reimbursement::latest()->get();
         } else {
-            $travelRequests = \App\Models\TravelRequest::latest()->get();
-            $reimbursements = \App\Models\Reimbursement::latest()->get();
+            $travelRequests = \App\Models\TravelRequest::latest()->take(10)->get();
+            $reimbursements = \App\Models\Reimbursement::latest()->take(10)->get();
         }
 
-        // Count pending tasks
+        // Count stats
         $pendingTRFCount = \App\Models\TravelRequest::where('status', 'pending_manager')->count();
         $pendingCRFCount = \App\Models\Reimbursement::where('status', 'pending_finance')->count();
+        $approvedNotReimbursedCount = \App\Models\Reimbursement::whereIn('status', ['approved', 'verified'])
+            ->where('reimbursement_status', 'not_reimbursed')
+            ->count();
+        $reimbursedCount = \App\Models\Reimbursement::where('reimbursement_status', 'reimbursed')->count();
+        $rejectedCRFCount = \App\Models\Reimbursement::where('status', 'rejected')->count();
 
-        return view('dashboard', compact('travelRequests', 'reimbursements', 'pendingTRFCount', 'pendingCRFCount'));
+        return view('dashboard', compact(
+            'travelRequests',
+            'reimbursements',
+            'pendingTRFCount',
+            'pendingCRFCount',
+            'approvedNotReimbursedCount',
+            'reimbursedCount',
+            'rejectedCRFCount'
+        ));
     })->name('dashboard');
 
     // Reimbursement choice page (Travel / Non Travel)
@@ -66,5 +73,13 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{reimbursement}/submit', [ReimbursementController::class, 'submit'])->name('submit');
         Route::post('/{reimbursement}/verify', [ReimbursementController::class, 'verify'])->name('verify');
         Route::post('/{reimbursement}/reject', [ReimbursementController::class, 'reject'])->name('reject');
+        Route::post('/{reimbursement}/mark-reimbursed', [ReimbursementController::class, 'markReimbursed'])->name('mark-reimbursed');
+        Route::delete('/attachments/{attachment}', [ReimbursementController::class, 'deleteAttachment'])->name('attachments.destroy');
+    });
+
+    // Excel Exports
+    Route::prefix('export')->name('export.')->group(function () {
+        Route::get('/trf', [ExcelExportController::class, 'exportTravelRequests'])->name('trf');
+        Route::get('/crf', [ExcelExportController::class, 'exportReimbursements'])->name('crf');
     });
 });

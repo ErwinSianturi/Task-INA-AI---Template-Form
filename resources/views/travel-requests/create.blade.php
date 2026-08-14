@@ -43,13 +43,18 @@
                     <div class="form-group-custom" style="margin-bottom: 1rem;">
                         <span class="form-label-custom">Category:</span>
                         <div class="form-value-box-yellow" style="flex-grow: 1; padding: 0.1rem 0.5rem;">
-                            <input type="text" name="category" value="{{ old('category', 'Technology') }}" required placeholder="e.g. Technology" style="font-weight: bold;">
+                            <select name="category" required style="font-weight: bold; background: transparent; border: none; width: 100%;">
+                                <option value="Technology" {{ old('category') === 'Technology' ? 'selected' : '' }}>Technology</option>
+                                <option value="Commercial" {{ old('category') === 'Commercial' ? 'selected' : '' }}>Commercial</option>
+                                <option value="Others" {{ old('category') === 'Others' ? 'selected' : '' }}>Others</option>
+                            </select>
                         </div>
                     </div>
                     <div class="form-group-custom" style="align-items: flex-start;">
                         <span class="form-label-custom" style="margin-top: 0.4rem;">Company:</span>
-                        <div class="form-value-box" style="flex-grow: 1; padding: 0.1rem 0.5rem;">
-                            <textarea name="company" rows="2" required placeholder="Company Name" style="resize: none;">{{ old('company', 'PT Teknologi Cerdas Berdaulat Indonesia') }}</textarea>
+                        <div class="form-value-box" style="flex-grow: 1; padding: 0.4rem 0.75rem; background-color: #F8FAFC; color: #1A2A3A; font-weight: 600;">
+                            PT Teknologi Cerdas Berdaulat Indonesia
+                            <input type="hidden" name="company" value="PT Teknologi Cerdas Berdaulat Indonesia">
                         </div>
                     </div>
                 </div>

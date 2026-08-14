@@ -2,11 +2,13 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
+use App\Models\ApprovalHistory;
+use App\Models\Reimbursement;
+use App\Models\ReimbursementAttachment;
+use App\Models\ReimbursementItem;
 use App\Models\TravelRequest;
 use App\Models\TravelRequestDestination;
-use App\Models\Reimbursement;
-use App\Models\ReimbursementItem;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -17,39 +19,66 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // 1. Create Demo Users
-        $employee = User::create([
+        // 1. Create Base Demo Users
+        $employee = User::firstOrCreate(['email' => 'employee@example.com'], [
             'name' => 'Demo Employee',
-            'email' => 'employee@example.com',
             'password' => Hash::make('password'),
             'role' => 'employee',
         ]);
 
-        $manager = User::create([
-            'name' => 'Pantro Pander',
-            'email' => 'manager@example.com',
+        $manager = User::firstOrCreate(['email' => 'manager@example.com'], [
+            'name' => 'Account Manager',
             'password' => Hash::make('password'),
             'role' => 'manager',
         ]);
 
-        $finance = User::create([
-            'name' => 'Tung Sen',
-            'email' => 'finance@example.com',
+        $finance = User::firstOrCreate(['email' => 'finance@example.com'], [
+            'name' => 'Account Finance',
             'password' => Hash::make('password'),
             'role' => 'finance',
         ]);
 
-        $admin = User::create([
+        $admin = User::firstOrCreate(['email' => 'admin@example.com'], [
             'name' => 'Demo Admin',
-            'email' => 'admin@example.com',
             'password' => Hash::make('password'),
             'role' => 'admin',
         ]);
 
-        // 2. Create Travel Request 1 (Approved)
-        $tr1 = TravelRequest::create([
+        // 2. Create Pengawas Accounts
+        $pantro = User::firstOrCreate(['email' => 'pantro@example.com'], [
+            'name' => 'Pantro Pander',
+            'password' => Hash::make('password'),
+            'role' => 'pengawas',
+            'signature_path' => 'signatures/pantro_pander.svg',
+        ]);
+
+        $tungsen = User::firstOrCreate(['email' => 'tungsen@example.com'], [
+            'name' => 'Tung Sen',
+            'password' => Hash::make('password'),
+            'role' => 'pengawas',
+            'signature_path' => 'signatures/tung_sen.svg',
+        ]);
+
+        $billy = User::firstOrCreate(['email' => 'billy@example.com'], [
+            'name' => 'Billy Gunawan',
+            'password' => Hash::make('password'),
+            'role' => 'pengawas',
+            'signature_path' => 'signatures/billy_gunawan.svg',
+        ]);
+
+        $apriliansyah = User::firstOrCreate(['email' => 'apriliansyah@example.com'], [
+            'name' => 'Apriliansyah',
+            'password' => Hash::make('password'),
+            'role' => 'pengawas',
+            'signature_path' => 'signatures/apriliansyah.svg',
+        ]);
+
+        // 3. Create Sample Travel Request (Technology Category -> Fully Approved by 3 parties)
+        $now = now();
+        $today = $now->toDateString();
+
+        $tr1 = TravelRequest::firstOrCreate(['request_number' => '001/WM-YBAR'], [
             'user_id' => $employee->id,
-            'request_number' => '001/WM-YBAR',
             'category' => 'Technology',
             'date' => '2024-11-20',
             'company' => 'PT Teknologi Cerdas Berdaulat Indonesia',
@@ -59,55 +88,55 @@ class DatabaseSeeder extends Seeder
             'supporting_value_1' => true,
             'supporting_label_2' => 'Travel Invitation Letter',
             'supporting_value_2' => true,
-            'supporting_label_3' => 'Hotel Confirmation',
-            'supporting_value_3' => false,
-            'supporting_label_4' => '',
-            'supporting_value_4' => false,
             'status' => 'approved',
+            'category_approver_id' => $billy->id,
+            'category_approved_at' => $now,
+            'manager_id' => $manager->id,
+            'manager_approved_at' => $now,
+            'pantro_id' => $pantro->id,
+            'pantro_approved_at' => $now,
+            'approved_by_user_id' => $billy->id,
             'submitted_at' => '2024-11-21 09:00:00',
             'approved_at' => '2024-11-22 14:00:00',
+            'signed_date' => '2024-11-22',
         ]);
 
-        TravelRequestDestination::create([
-            'travel_request_id' => $tr1->id,
-            'destination' => 'Singapore Exhibition Hall',
-            'from' => '2024-11-23', // Clean dates
-            'to' => '2024-11-28',   // Clean dates
-        ]);
+        if (TravelRequestDestination::where('travel_request_id', $tr1->id)->count() === 0) {
+            TravelRequestDestination::create([
+                'travel_request_id' => $tr1->id,
+                'destination' => 'Singapore Exhibition Hall',
+                'from' => '2024-11-23',
+                'to' => '2024-11-28',
+            ]);
+        }
 
-        // 3. Create Travel Request 2 (Pending Manager)
-        $tr2 = TravelRequest::create([
+        // 4. Create Sample Travel Request 2 (Commercial Category -> Pending Multi-Role Approval)
+        $tr2 = TravelRequest::firstOrCreate(['request_number' => '002/WM-YBAR'], [
             'user_id' => $employee->id,
-            'request_number' => '002/WM-YBAR',
-            'category' => 'Business Development',
+            'category' => 'Commercial',
             'date' => '2026-08-10',
             'company' => 'PT Teknologi Cerdas Berdaulat Indonesia',
             'justification' => 'Meet with client representatives to finalize software contract.',
             'benefit' => 'Secure a long-term partnership with major client.',
             'supporting_label_1' => 'Meeting Agenda',
             'supporting_value_1' => true,
-            'supporting_label_2' => 'Client Invitation',
-            'supporting_value_2' => false,
-            'supporting_label_3' => '',
-            'supporting_value_3' => false,
-            'supporting_label_4' => '',
-            'supporting_value_4' => false,
             'status' => 'pending_manager',
             'submitted_at' => now(),
         ]);
 
-        TravelRequestDestination::create([
-            'travel_request_id' => $tr2->id,
-            'destination' => 'Surabaya Corporate Office',
-            'from' => '2026-08-15',
-            'to' => '2026-08-18',
-        ]);
+        if (TravelRequestDestination::where('travel_request_id', $tr2->id)->count() === 0) {
+            TravelRequestDestination::create([
+                'travel_request_id' => $tr2->id,
+                'destination' => 'Surabaya Corporate Office',
+                'from' => '2026-08-15',
+                'to' => '2026-08-18',
+            ]);
+        }
 
-        // 4. Create Cash Reimbursement 1 (Pending Finance) - linked to TR 1 (Approved Travel)
-        $crf1 = Reimbursement::create([
+        // 5. Create Cash Reimbursement 1 (Pending 5-Role Approval)
+        $crf1 = Reimbursement::firstOrCreate(['request_number' => $tr1->request_number], [
             'user_id' => $employee->id,
             'travel_request_id' => $tr1->id,
-            'request_number' => $tr1->request_number,
             'reimbursement_type' => 'travel',
             'category' => $tr1->category,
             'date' => '2024-11-26',
@@ -118,38 +147,28 @@ class DatabaseSeeder extends Seeder
             'transfer_to' => 'Demo Employee',
             'total' => 400000.00,
             'status' => 'pending_finance',
+            'reimbursement_status' => 'not_reimbursed',
             'submitted_at' => now(),
         ]);
 
-        ReimbursementItem::create([
-            'reimbursement_id' => $crf1->id,
-            'date' => '2024-11-11',
-            'details' => 'AWS services period 1 June - 30 Nov',
-            'amount' => 400000.00,
-        ]);
+        if (ReimbursementItem::where('reimbursement_id', $crf1->id)->count() === 0) {
+            ReimbursementItem::create([
+                'reimbursement_id' => $crf1->id,
+                'date' => '2024-11-11',
+                'details' => 'AWS services period 1 June - 30 Nov',
+                'amount' => 400000.00,
+            ]);
+        }
 
-        // 5. Create Cash Reimbursement 2 (Draft Non-Travel)
-        $crf2 = Reimbursement::create([
-            'user_id' => $employee->id,
-            'travel_request_id' => null,
-            'request_number' => '004/WM-YBAR',
-            'reimbursement_type' => 'non_travel',
-            'category' => 'Office Supplies',
-            'date' => '2026-08-12',
-            'company' => 'PT Teknologi Cerdas Berdaulat Indonesia',
-            'note' => 'Replacement of office printer ink cartridge.',
-            'bank' => 'Bank Central Asia (BCA)',
-            'account_number' => '8012345678',
-            'transfer_to' => 'Demo Employee',
-            'total' => 150000.00,
-            'status' => 'draft',
-        ]);
-
-        ReimbursementItem::create([
-            'reimbursement_id' => $crf2->id,
-            'date' => '2026-08-11',
-            'details' => 'Printer Ink cartridge',
-            'amount' => 150000.00,
-        ]);
+        if (ReimbursementAttachment::where('reimbursement_id', $crf1->id)->count() === 0) {
+            ReimbursementAttachment::create([
+                'reimbursement_id' => $crf1->id,
+                'file_path' => 'receipts/sample_receipt.pdf',
+                'original_name' => 'AWS_Invoice_Nov2024.pdf',
+                'mime_type' => 'application/pdf',
+                'file_size' => 124500,
+                'receipt_date' => '2024-11-11',
+            ]);
+        }
     }
 }

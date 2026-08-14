@@ -3,18 +3,27 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreTravelRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true; // We will handle authorization via Policies
+        return true;
+    }
+
+    protected function prepareForValidation()
+    {
+        // Enforce fixed company name
+        $this->merge([
+            'company' => 'PT Teknologi Cerdas Berdaulat Indonesia',
+        ]);
     }
 
     public function rules(): array
     {
         return [
-            'category' => ['required', 'string', 'max:255'],
+            'category' => ['required', Rule::in(['Technology', 'Commercial', 'Others'])],
             'date' => ['required', 'date'],
             'company' => ['required', 'string', 'max:255'],
             'justification' => ['required', 'string'],

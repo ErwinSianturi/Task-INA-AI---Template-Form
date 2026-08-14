@@ -38,6 +38,10 @@
                 <li>Manager: manager@example.com</li>
                 <li>Finance: finance@example.com</li>
                 <li>Admin: admin@example.com</li>
+                <li>Tung Sen: tungsen@example.com</li>
+                <li>Billy Gunawan: billy@example.com</li>
+                <li>Apriliansyah: apriliansyah@example.com</li>
+                <li>Pantro Pander: pantro@example.com</li>
             </ul>
         </div>
     </div>
